@@ -7,7 +7,7 @@
   const WORLD = { width: 2160, ground: 280, height: 336 };
   const HOUSE_X = 1940;
   const BIRTHDAY_DELAY = 1.8;
-  const ROOM = { width: 480, ground: 280, height: 336, spawn: 100, door: 52, candle: 306 };
+  const ROOM = { width: 480, ground: 280, height: 336, spawn: 100, door: 52, candle: 306, computer: 418 };
   const PLATFORMS = [
     { x: 750, y: 239, w: 100, h: 12 },
     { x: 890, y: 204, w: 100, h: 12 },
@@ -24,7 +24,8 @@
   ];
   const ROOM_OBJECTS = [
     { id: 'exit', x: ROOM.door, y: 280, reach: 35 },
-    { id: 'candle', x: ROOM.candle, y: 280, reach: 55 }
+    { id: 'candle', x: ROOM.candle, y: 280, reach: 55 },
+    { id: 'archive', x: ROOM.computer, y: 280, reach: 32 }
   ];
   const STAR_POSITIONS = [[235, 255], [610, 255], [800, 218], [940, 183], [1632, 218]];
   const clamp = (n, min, max) => Math.max(min, Math.min(n, max));
@@ -129,6 +130,7 @@
     }
     if (object.id === 'house') enterHouse(state);
     if (object.id === 'exit') leaveHouse(state);
+    if (object.id === 'archive') emit(state, 'archive');
     if (object.id === 'candle') {
       if (!state.house.candleLit) {
         state.house.candleLit = true; state.house.light = 0; requestBirthday(state, 'candle');

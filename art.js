@@ -114,6 +114,25 @@
     rect(x-23,y-2,46,3,'#728078');rect(x-27,y+1,54,3,'#455852');
     rect(x-43,y-15,10,15,'#4d5750');rect(x-46,y-18,16,4,'#6e7060');bush(x-38,y-18,.4);
   }
+  function computer(x,y){
+    // Original CRT on its own desk, clear of the cake table and the room wall.
+    rect(x-33,y-20,68,5,'#30323a');rect(x-29,y-15,5,15,'#242833');rect(x+26,y-15,5,15,'#242833');
+    rect(x-19,y-60,38,32,'#29343d');rect(x-17,y-58,34,28,'#3a454a');rect(x-14,y-55,28,20,'#0d2128');
+    rect(x-4,y-28,8,6,'#28323b');rect(x-12,y-23,24,3,'#374047');
+    rect(x-17,y-23,34,2,'#4a4d4d');rect(x-13,y-22,24,1,'#222a32');
+  }
+  function computerScreen(x,y,ease){
+    // Emission is drawn after room darkness. Its 22px halo cannot reach the cake.
+    const sy=y-46,halo=ctx.createRadialGradient(x,sy,3,x,sy,22);
+    halo.addColorStop(0,'rgba(85,165,157,0.10)');halo.addColorStop(.5,'rgba(66,131,135,0.035)');halo.addColorStop(1,'rgba(48,98,109,0)');
+    ctx.fillStyle=halo;ctx.fillRect(x-22,sy-22,44,44);
+    ctx.save();ctx.globalAlpha=.78-ease*.1;
+    rect(x-13,y-54,26,18,'#315c62');rect(x-12,y-53,24,16,'#143b43');
+    rect(x-10,y-51,17,1,'#6da597');rect(x-10,y-48,9,1,'#4c807e');
+    rect(x-10,y-44,20,5,'#204b53');rect(x-9,y-43,3,3,'#639c92');
+    rect(x-4,y-43,12,1,'#497c7a');rect(x-4,y-41,8,1,'#3b696f');rect(x+9,y-51,1,1,'#8cb9a7');
+    ctx.restore();
+  }
   function room(state){
     const sx=x=>x-camera,sy=y=>y+base,gy=sy(280),x=sx(306),cy=sy(224);
     const t=state.house.candleLit?Math.min(1,state.house.light):0;
@@ -124,23 +143,37 @@
     rect(sx(0),gy,480,h-gy,'#171e29');rect(sx(0),gy,480,4,'#2c313c');
     for(let i=0;i<8;i++)rect(sx(0),gy+5+i*9,480,1,'#30353b');
     for(let i=0;i<9;i++)rect(sx(i*59),gy+7+(i%3)*9,1,8,'#3e4044');
-    // The door, window, table edge and unlit wick remain legible in the dark.
+    // The final darkness layer suppresses these surfaces before ignition.
     rect(sx(30),sy(207),44,73,'#31404b');rect(sx(34),sy(211),36,69,'#202c39');rect(sx(38),sy(215),28,63,'#273644');rect(sx(61),sy(248),2,3,'#b2a890');rect(sx(33),gy-1,39,2,'#87939a');
     rect(sx(375),sy(151),40,47,'#36414d');rect(sx(379),sy(155),32,39,'#23394c');rect(sx(382),sy(158),25,31,'#2c455a');rect(sx(394),sy(155),3,39,'#414852');rect(sx(379),sy(174),32,3,'#414852');
     rect(sx(122),sy(192),62,4,'#38404a');rect(sx(130),sy(176),5,16,'#444652');rect(sx(137),sy(181),7,11,'#3e4b50');rect(sx(147),sy(178),5,14,'#4c4748');
     rect(sx(245),sy(276),124,3,'#141b28');rect(sx(255),sy(250),102,6,'#2b2d37');rect(sx(263),sy(256),6,24,'#252a35');rect(sx(342),sy(256),6,24,'#252a35');
     // No cake or plate is drawn before ignition: only a small, findable unlit wick.
     rect(x,sy(225),1,6,'#8b877a');
+    computer(sx(root.NightEngine.ROOM.computer),gy);
     if(t>0){
       const light=ctx.createRadialGradient(x,cy,0,x,cy,radius);
       light.addColorStop(0,`rgba(255,213,137,${.28*ease})`);light.addColorStop(.45,`rgba(238,174,86,${.16*ease})`);light.addColorStop(1,'rgba(229,154,65,0)');
       ctx.fillStyle=light;ctx.fillRect(x-radius,cy-radius,radius*2,radius*2);
       ctx.save();ctx.globalAlpha=ease;rect(sx(255),sy(250),102,6,'#a3825e');rect(sx(263),sy(256),6,24,'#776049');rect(sx(342),sy(256),6,24,'#776049');cake(x,sy(254),true,time);ctx.restore();
-      for(let i=-1;i<=1;i++){rect(x+i*9-1,cy-2,2,3,C.gold);rect(x+i*9,cy-2,1,1,C.warm);}
-      // One small ignition spark, lasting only the first fraction of the reveal.
-      if(!reduced&&t<.16){rect(x-2,cy-3,1,2,'#ffe7a4');rect(x+4,cy-1,1,1,'#cba66c');}
     }
     player(state.player);
+    // Use the existing candle state/progress/radius, never proximity or entry.
+    // A little ambient visibility reveals the table/wick, never an unlit cake.
+    // Return to the original final darkness as the candle's warm light takes over.
+    const ambient=.86+.11*ease;
+    if(t>0){
+      const darkness=ctx.createRadialGradient(x,cy,0,x,cy,radius);
+      darkness.addColorStop(0,`rgba(1,3,9,${ambient-.93*ease})`);
+      darkness.addColorStop(.35,`rgba(1,3,9,${ambient-.82*ease})`);
+      darkness.addColorStop(.7,`rgba(1,3,9,${ambient-.30*ease})`);
+      darkness.addColorStop(1,`rgba(1,3,9,${ambient})`);ctx.fillStyle=darkness;ctx.fillRect(0,0,w,h);
+    }else rect(0,0,w,h,'rgba(1,3,9,0.86)');
+    if(state.house.candleLit){
+      for(let i=-1;i<=1;i++){rect(x+i*9-1,cy-2,2,3,C.gold);rect(x+i*9,cy-2,1,1,C.warm);}
+      if(!reduced&&t<.16){rect(x-2,cy-3,1,2,'#ffe7a4');rect(x+4,cy-1,1,1,'#cba66c');}
+    }
+    computerScreen(sx(root.NightEngine.ROOM.computer),gy,ease);
   }
   // Presentation history only: never write animation fields into the player or
   // change physics. Weak keys also discard the old pose after a game restart.
@@ -163,8 +196,12 @@
   }
   function player(p){
     const pose=playerPose(p);
-    let x=Math.round(Number.isFinite(playerScreenX)?playerScreenX:p.x-camera),y=Math.round(p.y+base);
-    ctx.save();if(p.facing<0){ctx.translate(x+p.w,y);ctx.scale(-1,1);x=0;y=0;}
+    const screenX=Number.isFinite(playerScreenX)?playerScreenX:p.x-camera;
+    let x=Math.round(screenX),y=Math.round(p.y+base);
+    ctx.save();
+    // Align the complete sprite to whole canvas pixels. Fractional translation
+    // changes edge coverage every frame and makes the pixel artwork shimmer.
+    if(p.facing<0){ctx.translate(x+p.w,y);ctx.scale(-1,1);x=0;y=0;}
     const upper=y+pose.body,airLift=pose.air?(Math.abs(p.vy)<65?2:1):0;
     // Small travel pack, behind the body. It is scenery on the sprite only,
     // with no inventory or gameplay behavior.
@@ -249,7 +286,10 @@
   }
   function flowers(x,y,seed){const color=seed%3===0?'#bdbb91':seed%3===1?'#85998a':'#657c75';rect(x,y-4,1,4,C.grassLight);rect(x-1,y-5,3,2,color);}
   function draw(state, view, options={}) {
-    ctx=view.ctx;w=view.width;h=view.height;camera=Math.round(state.camera)-root.NightEngine.screenOffset(state,w);base=h-336;time=state.time;reduced=!!options.reduced;playerScreenX=options.playerScreenX;
+    ctx=view.ctx;w=view.width;h=view.height;camera=Math.round(state.camera)-root.NightEngine.screenOffset(state,w);base=h-336;time=state.time;reduced=!!options.reduced;
+    // The fallback uses the same unrounded relative coordinate as game.js;
+    // scenery retains its existing integer camera and the actor snaps once.
+    playerScreenX=Number.isFinite(options.playerScreenX)?options.playerScreenX:state.player.x-state.camera+root.NightEngine.screenOffset(state,w);
     if(state.scene==='house'){room(state);return;}
     rect(0,0,w,h,C.sky);rect(0,Math.round(h*.5),w,h*.5,C.sky2);rect(0,h*.68,w,h*.32,C.sky3);
     for(let i=0;i<100;i++){const sx=((rand(i+10)*2400-camera*.12)% (w+120)+w+120)%(w+120)-60;const sy=12+rand(i+100)*Math.max(50,h*.65);const bright=i%11===0;const twinkle=reduced?1:.72+Math.sin(time*.55+i)*.22;ctx.globalAlpha=twinkle;rect(sx,sy,1,1,bright?'#d9c797':'#61778d');if(bright&&i%2===0)rect(sx-1,sy+1,3,1,'#809299');}ctx.globalAlpha=1;

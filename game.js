@@ -58,6 +58,7 @@
     boxAgain:['Still a little brighter in here.','这里还亮着一点星光。'],
     dark:['It’s a little too dark in here…','这里有点暗……'],
     lightHint:['Looks like it could be lit…','似乎可以点燃…'],
+    computer:['valorant time..？',''],
     musicFailed:['Music couldn’t start. The birthday note will still appear.','音乐暂未播放，生日祝福仍会出现。'],
     birthday:[config.birthdayBody||'',config.birthdayBodyZh||'']
   };
@@ -150,13 +151,14 @@
     try{const t=audio.currentTime+delay,o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.value=freq;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+length);o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+length+.02);o.onended=()=>{o.disconnect();g.disconnect();};}catch(_){}
   }
   function burst(x,y,n=14){if(reduced)return;for(let i=0;i<n;i++){const angle=i/n*Math.PI*2;const speed=13+(i%5)*7;particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-19,size:i%3===0?2:1,color:['#edca86','#90aaa2','#d8b9ac'][i%3],life:1.2,max:1.2});}}
-  function resetToastPlacement(){toastPlacement=null;$('toast').style.top='';$('toast').style.bottom='';$('toast').style.transform='';$('toast').dataset.outdoorOffset='0';}
+  function resetToastPlacement(){toastPlacement=null;$('toast').style.left='';$('toast').style.top='';$('toast').style.bottom='';$('toast').style.transform='';$('toast').dataset.outdoorOffset='0';}
   function hasOutdoorDialogue(){return toastAnchor&&toastAnchor.scene==='night'&&state.scene==='night'&&state.mode==='playing';}
-  function showToast(copy,duration=4,memory=false){resetToastPlacement();dismissedPromptId=null;$('object-prompt').style.opacity='1';$('toast').classList.toggle('memory-toast',memory);$('toast').classList.remove('toast-fading');$('toast').style.opacity='1';toastAnchor=null;toastFade=0;toastCopy=copy;toastTime=duration;$('toast-en').textContent=copy[0];$('toast-zh').textContent=copy[1];$('toast-zh').hidden=!chinese;$('toast').hidden=false;}
-  function hideToast(){if(toastAnchor&&toastAnchor.scene==='night')$('object-prompt').hidden=true;$('object-prompt').style.opacity='1';toastTime=0;toastCopy=null;toastAnchor=null;toastFade=0;$('toast').hidden=true;$('toast').style.opacity='1';$('toast').classList.remove('toast-fading');resetToastPlacement();}
-  function showObjectDialogue(copy,id,memory=false){showToast(copy,0,memory);const object=E.OBJECTS.find(o=>o.id===id);if(object){toastAnchor={...object,scene:state.scene};if(object.auto)updateHUD();}positionOutdoorDialogue();}
+  function showToast(copy,duration=4,memory=false){resetToastPlacement();dismissedPromptId=null;$('object-prompt').style.opacity='1';$('toast').classList.remove('computer-speech');$('toast').classList.remove('computer-speech-dim');$('computer-speech-outline').hidden=true;$('toast').classList.toggle('memory-toast',memory);$('toast').classList.remove('toast-fading');$('toast').style.opacity='1';toastAnchor=null;toastFade=0;toastCopy=copy;toastTime=duration;$('toast-en').textContent=copy[0];$('toast-zh').textContent=copy[1];$('toast-zh').hidden=!chinese||!toastCopy[1];$('toast').hidden=false;}
+  function hideToast(){if(toastAnchor&&toastAnchor.scene==='night')$('object-prompt').hidden=true;$('object-prompt').style.opacity='1';toastTime=0;toastCopy=null;toastAnchor=null;toastFade=0;$('toast').classList.remove('computer-speech');$('toast').classList.remove('computer-speech-dim');$('computer-speech-outline').hidden=true;$('toast').hidden=true;$('toast').style.opacity='1';$('toast').classList.remove('toast-fading');resetToastPlacement();}
+  function showObjectDialogue(copy,id,memory=false){showToast(copy,0,memory);const object=(state.scene==='house'?E.ROOM_OBJECTS:E.OBJECTS).find(o=>o.id===id);if(object){toastAnchor={...object,scene:state.scene};if(object.auto)updateHUD();}if(id==='archive'){$('toast').classList.add('computer-speech');$('toast').classList.toggle('computer-speech-dim',!state.house.candleLit);$('computer-speech-outline').hidden=false;}positionOutdoorDialogue();}
   function positionOutdoorDialogue(){
     const toast=$('toast');
+    if(!toast.hidden&&toastAnchor&&toastAnchor.id==='archive'&&state.scene==='house'){positionComputerSpeech();return;}
     if(toast.hidden||!toastAnchor||toastAnchor.scene!=='night'||state.scene!=='night')return;
     const world=$('world').getBoundingClientRect();
     // Prompt visibility/camera changes must not reflow an already visible message.
@@ -180,6 +182,15 @@
     toast.dataset.outdoorOffset=String(offset);
     toast.style.transform=`translate(-50%, ${offset}px)`;
     toastPlacement={width:world.width,height:world.height};
+  }
+  function positionComputerSpeech(){
+    const world=$('world').getBoundingClientRect(),toast=$('toast');
+    const half=Math.min(world.width/2-10,(toast.offsetWidth||220)/2+8);
+    const px=(E.ROOM.computer-state.camera+E.screenOffset(state,view.width))/view.width*world.width;
+    const py=(E.ROOM.ground-56+view.height-336)/view.height*world.height;
+    toast.style.left=E.clamp(px,half,world.width-half)+'px';
+    toast.style.top=E.clamp(py,Math.min(86,world.height-8),world.height-8)+'px';
+    toast.style.bottom='auto';toast.style.transform='translate(-50%,-100%)';
   }
   function fadeToast(){if(!toastCopy||toastFade>0)return;toastFadeDuration=reduced?.15:.55;toastFade=toastFadeDuration;$('toast').classList.add('toast-fading');}
   function updateToast(dt){
@@ -210,7 +221,7 @@
     document.querySelectorAll('[data-cn]').forEach(el=>{el.textContent=chinese?el.dataset.cn:el.dataset.en;});
     $('touch-jump-label').textContent=chinese?'跳跃':'JUMP';$('touch-interact-label').textContent=chinese?'互动':'INTERACT';
     $('footer-note').textContent=chinese?'不赶时间，慢慢走。':'NOWHERE TO BE. NOTHING TO RUSH.';
-    if(toastCopy){$('toast-zh').textContent=toastCopy[1];$('toast-zh').hidden=!chinese;}
+    if(toastCopy){$('toast-zh').textContent=toastCopy[1];$('toast-zh').hidden=!chinese||!toastCopy[1];}
   }
   function syncUI(){
     const playing=state.mode==='playing',modal=state.mode==='birthday'||state.mode==='paused',birthday=state.mode==='birthday',roomBirthday=birthday&&state.scene==='house';
@@ -241,7 +252,7 @@
     $('star-counter').setAttribute('aria-label',`${count} of 5 stars / ${count} 颗星星，共 5 颗`);
     let target=state.mode==='playing'?E.nearest(state):null;
     if(target&&target.id==='candle'&&['waiting','counting','audioBlocked'].includes(state.reveal.status))target=null;
-    const labels={bench:state.player.sitting?['Stand up','起身']:['Take a seat','坐一会儿'],box:state.boxOpen?['A little light','一点星光']:['Open the box','打开盒子'],sign:['Read','读一读'],house:['Step inside','进入小屋'],exit:['Step outside','离开小屋'],candle:state.house.candleLit?['Read the birthday note','阅读生日祝福']:['Looks like it could be lit…','似乎可以点燃…'],hkTerminal:['HK SERVER · ONE YEAR AGO','港服 · 一年前'],roundOne:['A quiet keepsake','一件安静的纪念物'],filmBoard:['A faded seaside poster','一张褪色的海边海报']};
+    const labels={bench:state.player.sitting?['Stand up','起身']:['Take a seat','坐一会儿'],box:state.boxOpen?['A little light','一点星光']:['Open the box','打开盒子'],sign:['Read','读一读'],house:['Step inside','进入小屋'],exit:['Step outside','离开小屋'],candle:state.house.candleLit?['Read the birthday note','阅读生日祝福']:['Looks like it could be lit…','似乎可以点燃…'],archive:['Use computer','使用电脑'],hkTerminal:['HK SERVER · ONE YEAR AGO','港服 · 一年前'],roundOne:['A big spike','一件安静的纪念物'],filmBoard:['A faded seaside poster','一张褪色的海边海报']};
     const prompt=$('object-prompt'),promptWasHidden=prompt.hidden,linked=hasOutdoorDialogue();
     if(dismissedPromptId&&(!target||target.id!==dismissedPromptId))dismissedPromptId=null;
     // Keep the matching prompt visible through the dialogue's existing departure
@@ -250,7 +261,8 @@
     prompt.style.opacity=linked?$('toast').style.opacity:'1';
     prompt.classList.toggle('auto-prompt',!!(linked?toastAnchor.auto:target&&target.auto));
     const promptTarget=linked&&(!target||target.id!==toastAnchor.id)?null:target;
-    if(promptTarget){$('object-prompt-text').textContent=chinese?`${labels[promptTarget.id][0]} · ${labels[promptTarget.id][1]}`:labels[promptTarget.id][0];const world=$('world').getBoundingClientRect();const px=(promptTarget.x-state.camera+E.screenOffset(state,view.width))/view.width*world.width;const py=(promptTarget.y-(promptTarget.id==='candle'?92:49)+view.height-336)/view.height*world.height;const half=Math.min(world.width/2-10,(prompt.offsetWidth||200)/2+12);prompt.style.left=E.clamp(px,half,world.width-half)+'px';prompt.style.top=Math.max(45,py)+'px';}
+    if(promptTarget){$('object-prompt-text').textContent=chinese?`${labels[promptTarget.id][0]} · ${labels[promptTarget.id][1]}`:labels[promptTarget.id][0];const world=$('world').getBoundingClientRect();const px=(promptTarget.x-state.camera+E.screenOffset(state,view.width))/view.width*world.width;const py=(promptTarget.y-(promptTarget.id==='candle'?92:promptTarget.id==='archive'?78:49)+view.height-336)/view.height*world.height;const half=Math.min(world.width/2-10,(prompt.offsetWidth||200)/2+12);prompt.style.left=E.clamp(px,half,world.width-half)+'px';prompt.style.top=Math.max(45,py)+'px';}
+    if(toastAnchor&&toastAnchor.id==='archive'&&state.scene==='house') {prompt.hidden=true;positionComputerSpeech();}
     const actionable=target&&!target.auto;
     $('touch-interact').classList.toggle('available',!!actionable);$('touch-interact').setAttribute('aria-label',actionable?`${labels[target.id][0]} / ${labels[target.id][1]}`:'Interact / 互动');
     $('touch-interact').disabled=!actionable;
@@ -266,6 +278,7 @@
     if(ev.type==='roundOne'){if(toastCopy===text.roundMemory&&!toastFade)fadeToast();else{if(memorialPulse===0)memorialPulse=1.1;showObjectDialogue(text.roundMemory,'roundOne',true);}}
     if(ev.type==='sign')showObjectDialogue(text.sign,'sign');
     if(ev.type==='filmBoard')showObjectDialogue(text.filmNote,'filmBoard',true);
+    if(ev.type==='archive')showObjectDialogue(text.computer,'archive',true);
     if(ev.type==='boxLocked')showObjectDialogue(text.boxLocked,'box');
     if(ev.type==='boxOpen'){showObjectDialogue(text.boxOpen,'box');burst(ev.x,ev.y,18);tone(440,.4);tone(660,.45,.025,.1);}
     if(ev.type==='boxAgain')showObjectDialogue(text.boxAgain,'box');
@@ -286,11 +299,12 @@
       if(state.mode==='playing'||state.mode==='birthday'){for(const p of particles){p.x+=p.vx/60;p.y+=p.vy/60;p.vy+=18/60;p.life-=1/60;}particles=particles.filter(p=>p.life>0);}
       accumulator-=1/60;
     }
-    // Interpolate only the actor's horizontal screen position between physics
-    // ticks. Camera, world drawing, hitbox and interaction positions stay exact.
+    // Subtract the camera at the matching physics tick before interpolating.
+    // Rounding each camera endpoint separately makes a steadily tracked actor
+    // rock backwards and forwards by one pixel. The renderer rounds once.
     let playerScreenX;
     if(state.mode==='playing'&&playerFrame&&playerFrame.player===state.player&&playerFrame.scene===state.scene&&playerFrame.width===view.width&&Math.abs(state.player.x-playerFrame.x)<8&&Math.abs(state.camera-playerFrame.camera)<8){
-      const from=playerFrame.x-Math.round(playerFrame.camera),to=state.player.x-Math.round(state.camera);
+      const from=playerFrame.x-playerFrame.camera,to=state.player.x-state.camera;
       playerScreenX=from+(to-from)*E.clamp(accumulator*60,0,1)+E.screenOffset(state,view.width);
     }
     A.draw(state,view,{reduced,particles,playerScreenX,memorialGlow:memorialPulse>0?Math.sin(Math.PI*(1-memorialPulse/1.1)):0});updateHUD();}

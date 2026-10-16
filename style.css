@@ -68,3 +68,11 @@ button,a{touch-action:manipulation}button{font:inherit;color:inherit;cursor:poin
 .memory-toast{white-space:pre-line;overflow-wrap:anywhere;animation:memory-arrive .35s ease-out both}
 .toast.toast-fading{animation:none}
 @keyframes memory-arrive{from{opacity:0}to{opacity:1}}
+
+/* The computer reuses the toast lifecycle, with only a transparent speech outline. */
+.computer-speech-outline{display:none}
+.toast.computer-speech{width:220px;max-width:calc(100% - 20px);height:78px;min-height:0;padding:19px 16px 24px;bottom:auto;left:50%;background:transparent;border:0;box-shadow:none;color:#d7e7df;text-align:center;font:400 12px/1.5 var(--mono);white-space:nowrap;transform:translate(-50%,-100%);z-index:4}
+.toast.computer-speech .computer-speech-outline{display:block;position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:#bfd4cc;stroke-width:1.6;stroke-linejoin:round;pointer-events:none}
+.toast.computer-speech #toast-en{position:relative;background:transparent}
+.toast.computer-speech.computer-speech-dim #toast-en,
+.toast.computer-speech.computer-speech-dim .computer-speech-outline{opacity:.78}
