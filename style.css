@@ -19,3 +19,51 @@ button,a{touch-action:manipulation}button{font:inherit;color:inherit;cursor:poin
 @media(pointer:coarse),(max-width:700px){.tool-button,.pause-button{min-width:44px}.wordmark{min-height:44px}.wordmark{flex-shrink:1}.tools{flex-shrink:0}}
 @media(max-width:370px){.wordmark{font-size:8px;letter-spacing:.3px;gap:7px}.topbar{gap:2px}.star-counter{font-size:10px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+/* Shared reading controls and mobile interaction prompts. */
+#dialog-body,#dialog-body-zh,#toast-en,#toast-zh{white-space:pre-line}
+.touch-prompt{display:none}
+.object-prompt{max-width:calc(100% - 20px);white-space:normal;text-align:center}.key-cap,.touch-prompt{flex-shrink:0}
+.dialog-meta{border-top:1px solid #334358;margin-top:20px;padding-top:8px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+#dialog-sound{font-size:9px;padding:5px 3px;min-height:44px;gap:6px;color:var(--gold)}
+.music-info{flex:1;min-width:140px;font-size:8px;color:#94a9b9;line-height:1.7}
+.music-info summary{min-height:44px;display:flex;align-items:center;cursor:pointer;touch-action:manipulation}
+.music-info p{font-size:9px;line-height:1.7;margin:4px 0}
+.music-info a{text-decoration:underline;color:#c4cdbd}
+/* On phones prompts use a stable top strip, clear of the player, cake and controls. */
+@media(pointer:coarse),(max-width:700px){
+  .touch-prompt{display:inline}
+  .object-prompt{left:50%!important;top:44px!important;transform:translateX(-50%);max-width:calc(100% - 32px);font-size:11px;line-height:1.5;padding:9px 12px}
+  .toast{top:108px;bottom:auto;width:calc(100% - 32px);max-width:390px;font-size:11px;padding:10px 12px}
+  #object-prompt[hidden]~#toast{top:48px}
+}
+@media(max-height:520px) and (orientation:landscape){
+  .object-prompt{top:29px!important;font-size:10px;padding:6px 10px;max-width:70%}
+  .toast{top:84px;max-width:360px;font-size:10px;padding:7px 10px}
+  #object-prompt[hidden]~#toast{top:32px}
+}
+
+/* The birthday reading layer covers the viewport, including the header/controls. */
+.modal-layer{position:fixed;z-index:100}
+.room-birthday{padding:0;align-items:stretch;background:#101b30f5;animation:birthday-arrive 1.2s ease-out both}
+.room-birthday .dialog{width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;box-shadow:none;background:transparent;padding:calc(52px + env(safe-area-inset-top)) max(24px,calc((100vw - 720px)/2),env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(24px,calc((100vw - 720px)/2),env(safe-area-inset-left));scrollbar-gutter:stable;touch-action:pan-y}
+.room-birthday .close-button{position:fixed;top:calc(10px + env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right));z-index:1}
+.room-birthday .dialog h2{font:400 clamp(23px,4vw,34px)/1.5 var(--mono);margin:18px 0 26px}
+.room-birthday .dialog>p:not(.eyebrow){font-size:clamp(14px,2.2vw,18px);line-height:1.9}
+.room-birthday .dialog-actions{flex-direction:row;gap:22px;margin-top:32px}
+.room-birthday .dialog-actions .pixel-button{font-size:12px}
+.room-birthday .dialog-meta{margin-top:30px}
+.room-birthday .music-info,.room-birthday .music-info p{font-size:11px}
+@keyframes birthday-arrive{from{opacity:0}to{opacity:1}}
+@media(max-width:500px){.room-birthday .dialog-actions{flex-direction:column;gap:18px}.room-birthday .dialog .eyebrow{font-size:9px}.room-birthday .dialog-meta{margin-top:24px}}
+@media(max-height:520px) and (orientation:landscape){.room-birthday .dialog{padding-top:calc(30px + env(safe-area-inset-top));padding-bottom:calc(26px + env(safe-area-inset-bottom))}.room-birthday .dialog h2{font-size:24px;margin:10px 0 18px}.room-birthday .dialog>p:not(.eyebrow){font-size:14px;line-height:1.8}.room-birthday .dialog-actions{margin-top:24px}}
+
+/* A quiet, text-only music easter egg immediately after the birthday message. */
+.birthday-song{display:flex;align-items:center;flex-wrap:wrap;column-gap:16px;row-gap:2px;margin-top:24px}
+.birthday-song a{display:inline-flex;align-items:center;min-height:44px;padding:5px 0;font:400 11px/1.8 var(--pixel);letter-spacing:.4px;color:#e3d3a9;text-decoration:underline;text-decoration-thickness:1px;text-decoration-color:#827b61;text-underline-offset:6px}
+.birthday-song a:hover{color:#f2e7ca;text-decoration-color:currentColor}
+.birthday-song small{font:400 10px/1.7 var(--mono);color:#9baaa9}
+
+/* Only the optional memory notes gain paragraph spacing and a quiet fade. */
+.memory-toast{white-space:pre-line;overflow-wrap:anywhere;animation:memory-arrive .35s ease-out both}
+.toast.toast-fading{animation:none}
+@keyframes memory-arrive{from{opacity:0}to{opacity:1}}

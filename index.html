@@ -27,7 +27,7 @@
     <section id="world" aria-label="Night path / 夜间小径">
       <canvas id="game-canvas" aria-label="Pixel-art exploration game. Use A and D to move, Space to jump, and E to interact. 方向键移动，空格跳跃，E互动。">Your browser needs Canvas to play this game. 请使用支持 Canvas 的浏览器。</canvas>
       <div id="location" class="location" aria-hidden="true"><span class="location-line"></span><span id="location-text">THE QUIET PATH</span></div>
-      <div id="object-prompt" class="object-prompt" hidden><span class="key-cap" aria-hidden="true">E</span><span id="object-prompt-text"></span></div>
+      <div id="object-prompt" class="object-prompt" hidden><span class="key-cap" aria-hidden="true">E</span><span class="touch-prompt" aria-hidden="true">✦</span><span id="object-prompt-text"></span></div>
       <div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toast-en"></span><span id="toast-zh" class="translation" hidden></span></div>
       <div id="title-layer" class="screen-layer">
         <section class="title-card" aria-labelledby="game-title">
@@ -36,26 +36,6 @@
           <p class="opening">Welcome to your little break.<span class="translation" data-zh="欢迎来到属于你的小小休息时间。" hidden></span></p>
           <button id="start-button" class="pixel-button primary">Step into the night <span aria-hidden="true">→</span><small class="translation" data-zh="走进夜色" hidden></small></button>
           <p class="title-note">A short walk. A few little surprises.<span class="translation" data-zh="走一小段路，遇见几个小惊喜。" hidden></span></p>
-        </section>
-      </div>
-      <div id="dialog-layer" class="screen-layer modal-layer" hidden>
-        <section id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1">
-          <button id="dialog-close" class="close-button" aria-label="Close / 关闭">×</button>
-          <p id="dialog-eyebrow" class="eyebrow"></p>
-          <div id="birthday-art" aria-hidden="true" hidden><span>✦</span><svg width="64" height="46" viewBox="0 0 64 46" shape-rendering="crispEdges"><path fill="#d7b480" d="M19 14h2v10h-2zm12 0h2v10h-2zm12 0h2v10h-2z"/><path fill="#f7dfa0" d="M19 8h2v5h-2zm12 0h2v5h-2zm12 0h2v5h-2z"/><path fill="#bf8e7e" d="M11 26h42v15H11z"/><path fill="#eddfc4" d="M11 23h42v7H11zm3 7h5v4h-5zm12 0h5v4h-5zm17 0h5v4h-5z"/><path fill="#9a6f64" d="M11 39h42v3H11z"/><path fill="#b3bab0" d="M7 42h50v2H7z"/></svg><span>✧</span></div>
-          <h2 id="dialog-title"></h2>
-          <p id="dialog-body"></p>
-          <p id="dialog-body-zh" class="translation" hidden></p>
-          <p id="optional-line" class="optional-line" hidden></p>
-          <p id="optional-line-zh" class="translation" hidden></p>
-          <div id="birthday-actions" class="dialog-actions" hidden>
-            <button id="explore-button" class="pixel-button primary">Explore a little more<small class="translation" data-zh="再逛一会儿" hidden></small></button>
-            <button id="night-button" class="pixel-button secondary">Back to the night<small class="translation" data-zh="回到起点" hidden></small></button>
-          </div>
-          <div id="pause-actions" class="dialog-actions" hidden>
-            <button id="resume-button" class="pixel-button primary">Keep wandering<small class="translation" data-zh="继续散步" hidden></small></button>
-            <button id="restart-button" class="pixel-button secondary">Start a fresh night<small class="translation" data-zh="重新开始" hidden></small></button>
-          </div>
         </section>
       </div>
     </section>
@@ -67,6 +47,33 @@
         <div class="action-controls"><button id="touch-interact" class="touch-button interact-touch" data-control="interact" aria-label="Interact / 互动"><span aria-hidden="true">✦</span><small id="touch-interact-label">INTERACT</small></button><button class="touch-button jump-touch" data-control="jump" aria-label="Jump / 跳跃"><span aria-hidden="true">↑</span><small id="touch-jump-label">JUMP</small></button></div>
       </div>
     </footer>
+      <div id="dialog-layer" class="screen-layer modal-layer" hidden>
+        <section id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1">
+          <button id="dialog-close" class="close-button" aria-label="Close / 关闭">×</button>
+          <p id="dialog-eyebrow" class="eyebrow"></p>
+          <h2 id="dialog-title"></h2>
+          <p id="dialog-body"></p>
+          <p id="dialog-body-zh" class="translation" hidden></p>
+          <p id="optional-line" class="optional-line" hidden></p>
+          <p id="optional-line-zh" class="translation" hidden></p>
+          <div id="birthday-song" class="birthday-song" hidden>
+            <a id="birthday-song-link" href="https://music.163.com/song?id=2619125556" target="_blank" rel="noopener noreferrer external" aria-label="happy twenty-three — open a little song in a new tab / 在新标签页打开一首歌" aria-describedby="birthday-song-hint">happy twenty-three</a>
+            <small id="birthday-song-hint">♫ a little song awaits</small>
+          </div>
+          <div id="birthday-actions" class="dialog-actions" hidden>
+            <button id="explore-button" class="pixel-button primary">Explore a little more<small class="translation" data-zh="再逛一会儿" hidden></small></button>
+            <button id="night-button" class="pixel-button secondary">Back to the night<small class="translation" data-zh="回到夜色中" hidden></small></button>
+          </div>
+          <div id="pause-actions" class="dialog-actions" hidden>
+            <button id="resume-button" class="pixel-button primary">Keep wandering<small class="translation" data-zh="继续散步" hidden></small></button>
+            <button id="restart-button" class="pixel-button secondary">Start a fresh night<small class="translation" data-zh="重新开始" hidden></small></button>
+          </div>
+          <div class="dialog-meta">
+            <button id="dialog-sound" class="tool-button" aria-label="Mute music / 关闭音乐" aria-pressed="true">♪ <span id="dialog-sound-label">MUSIC ON</span></button>
+            <details class="music-info"><summary>Music credits / 音乐来源</summary><p>Happy Birthday to You (melody: Good Morning to All). Instrumental recording: Eirik1231, 2011. <a href="https://commons.wikimedia.org/wiki/File:Good_Morning_to_All.ogg" target="_blank" rel="noopener noreferrer">Source</a> · <a href="https://commons.wikimedia.org/wiki/Template:PD-self" target="_blank" rel="noopener noreferrer">Public domain (PD-self)</a>. Slowed, softened and converted to MP3 for this game.</p><p>Outdoor music: “Music for Manatees” and “Dream Culture” — Kevin MacLeod (incompetech.com). <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1400009" target="_blank" rel="noopener noreferrer">Music for Manatees source</a> · <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1300046" target="_blank" rel="noopener noreferrer">Dream Culture source</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Both recordings excerpted to two minutes, level adjusted, faded and converted to mono MP3 for this game.</p></details>
+          </div>
+        </section>
+      </div>
   </main>
   <noscript><p class="noscript">Please enable JavaScript to take a little walk. 请开启 JavaScript。</p></noscript>
 </body>
