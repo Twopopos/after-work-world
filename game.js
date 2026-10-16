@@ -8,7 +8,7 @@
   let reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let view={ctx,width:600,height:336}, last=0, accumulator=0, toastTime=0, toastCopy=null, oldFocus=null;
   let toastAnchor=null, toastFade=0, toastFadeDuration=.55, toastPlacement=null, dismissedPromptId=null;
-  let memorialPulse=0, filmBoardInside=false;
+  let memorialPulse=0;
   let jumpQueued=false, particles=[], audio=null, music=null, musicSource=null, musicToken=0, musicNeedsResume=false, musicProbe=null;
   let musicGain=null, musicNode=null, musicLevel=.85, musicFade=null;
   const MUSIC_LEVEL=.85, MUSIC_FADE_SECONDS=1.5;
@@ -62,7 +62,7 @@
   };
   function clearInput(){keys.clear();pointers.clear();jumpQueued=false;document.querySelectorAll('[data-control]').forEach(el=>el.classList.remove('is-down'));}
   function held(action){return [...pointers.values()].some(p=>p.action===action)||(action==='left'?(keys.has('KeyA')||keys.has('ArrowLeft')):action==='right'?(keys.has('KeyD')||keys.has('ArrowRight')):false);}
-  function reset(){memorialPulse=0;filmBoardInside=false;resetOutdoor();stopMusic();playedMusic.clear();clearInput();state=E.createGame();particles=[];hideToast();last=0;accumulator=0;E.updateCamera(state,view.width,0,true);syncUI();canvas.focus({preventScroll:true});}
+  function reset(){memorialPulse=0;resetOutdoor();stopMusic();playedMusic.clear();clearInput();state=E.createGame();particles=[];hideToast();last=0;accumulator=0;E.updateCamera(state,view.width,0,true);syncUI();canvas.focus({preventScroll:true});}
   function setSoundUI(){
     $('sound-label').textContent=soundOn?'ON':'OFF';$('sound-button').setAttribute('aria-pressed',String(soundOn));$('sound-button').setAttribute('aria-label',soundOn?'Mute sound / 静音':'Turn sound on / 开启声音');
     $('dialog-sound-label').textContent=soundOn?'MUSIC ON':'MUSIC OFF';$('dialog-sound').setAttribute('aria-pressed',String(soundOn));$('dialog-sound').setAttribute('aria-label',soundOn?'Mute music / 关闭音乐':'Turn music on / 开启音乐');
@@ -154,14 +154,6 @@
   function showToast(copy,duration=4,memory=false){resetToastPlacement();dismissedPromptId=null;$('object-prompt').style.opacity='1';$('toast').classList.toggle('memory-toast',memory);$('toast').classList.remove('toast-fading');$('toast').style.opacity='1';toastAnchor=null;toastFade=0;toastCopy=copy;toastTime=duration;$('toast-en').textContent=copy[0];$('toast-zh').textContent=copy[1];$('toast-zh').hidden=!chinese;$('toast').hidden=false;}
   function hideToast(){if(toastAnchor&&toastAnchor.scene==='night')$('object-prompt').hidden=true;$('object-prompt').style.opacity='1';toastTime=0;toastCopy=null;toastAnchor=null;toastFade=0;$('toast').hidden=true;$('toast').style.opacity='1';$('toast').classList.remove('toast-fading');resetToastPlacement();}
   function showObjectDialogue(copy,id,memory=false){showToast(copy,0,memory);const object=E.OBJECTS.find(o=>o.id===id);if(object){toastAnchor={...object,scene:state.scene};if(object.auto)updateHUD();}positionOutdoorDialogue();}
-  function updateFilmBoard(){
-    const board=E.OBJECTS.find(o=>o.id==='filmBoard'),p=state.player;
-    if(state.scene!=='night'){filmBoardInside=false;return;}
-    // Reuse nearest's ground/proximity check. Rearm beyond the same departure
-    // margin as the dialogue, so standing or hovering at its edge never loops.
-    if(Math.abs(p.x+p.w/2-board.x)>board.reach+24||Math.abs(p.y+p.h-board.y)>70)filmBoardInside=false;
-    if(!filmBoardInside&&E.nearest(state)?.id===board.id){filmBoardInside=true;showObjectDialogue(text.filmNote,board.id,true);}
-  }
   function positionOutdoorDialogue(){
     const toast=$('toast');
     if(toast.hidden||!toastAnchor||toastAnchor.scene!=='night'||state.scene!=='night')return;
@@ -272,6 +264,7 @@
     if(ev.type==='hkTerminal'){if(toastCopy===text.hkMemory&&!toastFade)fadeToast();else showObjectDialogue(text.hkMemory,'hkTerminal',true);}
     if(ev.type==='roundOne'){if(toastCopy===text.roundMemory&&!toastFade)fadeToast();else{if(memorialPulse===0)memorialPulse=1.1;showObjectDialogue(text.roundMemory,'roundOne',true);}}
     if(ev.type==='sign')showObjectDialogue(text.sign,'sign');
+    if(ev.type==='filmBoard')showObjectDialogue(text.filmNote,'filmBoard',true);
     if(ev.type==='boxLocked')showObjectDialogue(text.boxLocked,'box');
     if(ev.type==='boxOpen'){showObjectDialogue(text.boxOpen,'box');burst(ev.x,ev.y,18);tone(440,.4);tone(660,.45,.025,.1);}
     if(ev.type==='boxAgain')showObjectDialogue(text.boxAgain,'box');
@@ -287,7 +280,7 @@
     const dt=last?Math.min((now-last)/1000,.1):0;last=now;
     if(!document.hidden){updateMusicFade(dt);updateOutdoor(dt);confirmPlayback();accumulator+=dt;while(accumulator>=1/60){
       const input={left:held('left'),right:held('right'),jumpPressed:jumpQueued};jumpQueued=false;
-      E.step(state,input,1/60);events();if(state.mode==='playing'){if(memorialPulse>0)memorialPulse=Math.max(0,memorialPulse-1/60);updateFilmBoard();updateToast(1/60);E.updateCamera(state,view.width,1/60,reduced);}
+      E.step(state,input,1/60);events();if(state.mode==='playing'){if(memorialPulse>0)memorialPulse=Math.max(0,memorialPulse-1/60);updateToast(1/60);E.updateCamera(state,view.width,1/60,reduced);}
       if(state.mode==='playing'||state.mode==='birthday'){for(const p of particles){p.x+=p.vx/60;p.y+=p.vy/60;p.vy+=18/60;p.life-=1/60;}particles=particles.filter(p=>p.life>0);}
       accumulator-=1/60;
     }

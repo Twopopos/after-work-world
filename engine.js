@@ -20,7 +20,7 @@
     { id: 'house', x: HOUSE_X, y: 280, reach: 44 },
     { id: 'hkTerminal', x: 1015, y: 280, reach: 40 },
     { id: 'roundOne', x: 1510, y: 280, reach: 38 },
-    { id: 'filmBoard', x: HOUSE_X + 164, y: WORLD.ground, reach: 40, auto: true }
+    { id: 'filmBoard', x: HOUSE_X + 164, y: WORLD.ground, reach: 40 }
   ];
   const ROOM_OBJECTS = [
     { id: 'exit', x: ROOM.door, y: 280, reach: 35 },
@@ -116,7 +116,7 @@
     const object = nearest(state);
     if (!object) return false;
     if (object.id === 'sign') emit(state, 'sign');
-    if (object.id === 'hkTerminal' || object.id === 'roundOne') emit(state, object.id);
+    if (object.id === 'hkTerminal' || object.id === 'roundOne' || object.id === 'filmBoard') emit(state, object.id);
     if (object.id === 'bench') {
       p.sitting = true; p.vx = 0; p.x = object.x - p.w / 2;
       emit(state, 'bench');
