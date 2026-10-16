@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101b30">
+  <meta name="description" content="A quiet pixel-art night walk. Collect a few stars, take a seat, and find a little birthday surprise.">
+  <title>A Little After-Work World</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./config.js" defer></script>
+  <script src="./engine.js" defer></script>
+  <script src="./art.js" defer></script>
+  <script src="./game.js" defer></script>
+</head>
+<body>
+  <main id="app" aria-label="A Little After-Work World">
+    <header class="topbar">
+      <a class="wordmark" href="#" id="home-button" aria-label="Pause game / 暂停游戏"><span class="tiny-moon" aria-hidden="true"></span><span>AFTER HOURS<span class="wordmark-sub">a little after-work world</span></span></a>
+      <nav class="tools" aria-label="Game settings / 游戏设置">
+        <span id="star-counter" class="star-counter" aria-label="0 of 5 stars"><span aria-hidden="true">✦</span> <b id="star-count">0</b><span class="counter-total"> / 5</span></span>
+        <button id="sound-button" class="tool-button" aria-label="Turn sound on / 开启声音" aria-pressed="false"><span id="sound-icon" aria-hidden="true">♪</span><span id="sound-label">OFF</span></button>
+        <button id="language-button" class="tool-button" aria-label="Show Chinese translations / 显示中文翻译" aria-pressed="false">EN<span class="tool-divider">/</span>中</button>
+        <button id="pause-button" class="tool-button pause-button" aria-label="Pause / 暂停" hidden><span aria-hidden="true">Ⅱ</span></button>
+      </nav>
+    </header>
+    <section id="world" aria-label="Night path / 夜间小径">
+      <canvas id="game-canvas" aria-label="Pixel-art exploration game. Use A and D to move, Space to jump, and E to interact. 方向键移动，空格跳跃，E互动。">Your browser needs Canvas to play this game. 请使用支持 Canvas 的浏览器。</canvas>
+      <div id="location" class="location" aria-hidden="true"><span class="location-line"></span><span id="location-text">THE QUIET PATH</span></div>
+      <div id="object-prompt" class="object-prompt" hidden><span class="key-cap" aria-hidden="true">E</span><span id="object-prompt-text"></span></div>
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toast-en"></span><span id="toast-zh" class="translation" hidden></span></div>
+      <div id="title-layer" class="screen-layer">
+        <section class="title-card" aria-labelledby="game-title">
+          <p class="eyebrow"><span aria-hidden="true">✦</span> A SMALL PLACE TO PAUSE</p>
+          <h1 id="game-title">A little <br>after-work <br><span>world.</span></h1>
+          <p class="opening">Welcome to your little break.<span class="translation" data-zh="欢迎来到属于你的小小休息时间。" hidden></span></p>
+          <button id="start-button" class="pixel-button primary">Step into the night <span aria-hidden="true">→</span><small class="translation" data-zh="走进夜色" hidden></small></button>
+          <p class="title-note">A short walk. A few little surprises.<span class="translation" data-zh="走一小段路，遇见几个小惊喜。" hidden></span></p>
+        </section>
+      </div>
+      <div id="dialog-layer" class="screen-layer modal-layer" hidden>
+        <section id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1">
+          <button id="dialog-close" class="close-button" aria-label="Close / 关闭">×</button>
+          <p id="dialog-eyebrow" class="eyebrow"></p>
+          <div id="birthday-art" aria-hidden="true" hidden><span>✦</span><svg width="64" height="46" viewBox="0 0 64 46" shape-rendering="crispEdges"><path fill="#d7b480" d="M19 14h2v10h-2zm12 0h2v10h-2zm12 0h2v10h-2z"/><path fill="#f7dfa0" d="M19 8h2v5h-2zm12 0h2v5h-2zm12 0h2v5h-2z"/><path fill="#bf8e7e" d="M11 26h42v15H11z"/><path fill="#eddfc4" d="M11 23h42v7H11zm3 7h5v4h-5zm12 0h5v4h-5zm17 0h5v4h-5z"/><path fill="#9a6f64" d="M11 39h42v3H11z"/><path fill="#b3bab0" d="M7 42h50v2H7z"/></svg><span>✧</span></div>
+          <h2 id="dialog-title"></h2>
+          <p id="dialog-body"></p>
+          <p id="dialog-body-zh" class="translation" hidden></p>
+          <p id="optional-line" class="optional-line" hidden></p>
+          <p id="optional-line-zh" class="translation" hidden></p>
+          <div id="birthday-actions" class="dialog-actions" hidden>
+            <button id="explore-button" class="pixel-button primary">Explore a little more<small class="translation" data-zh="再逛一会儿" hidden></small></button>
+            <button id="night-button" class="pixel-button secondary">Back to the night<small class="translation" data-zh="回到起点" hidden></small></button>
+          </div>
+          <div id="pause-actions" class="dialog-actions" hidden>
+            <button id="resume-button" class="pixel-button primary">Keep wandering<small class="translation" data-zh="继续散步" hidden></small></button>
+            <button id="restart-button" class="pixel-button secondary">Start a fresh night<small class="translation" data-zh="重新开始" hidden></small></button>
+          </div>
+        </section>
+      </div>
+    </section>
+    <footer class="bottom-bar">
+      <div class="desktop-hints"><span><kbd>←</kbd><kbd>→</kbd> <span data-en="walk" data-cn="移动">walk</span></span><span><kbd>SPACE</kbd> <span data-en="jump" data-cn="跳跃">jump</span></span><span><kbd>E</kbd> <span data-en="interact" data-cn="互动">interact</span></span></div>
+      <p class="quiet-note"><span class="status-dot" aria-hidden="true"></span><span id="footer-note">NOWHERE TO BE. NOTHING TO RUSH.</span></p>
+      <div id="touch-controls" class="touch-controls" aria-label="Touch controls / 触屏操作" hidden>
+        <div class="move-controls"><button class="touch-button direction" data-control="left" aria-label="Move left / 向左移动">◀</button><button class="touch-button direction" data-control="right" aria-label="Move right / 向右移动">▶</button></div>
+        <div class="action-controls"><button id="touch-interact" class="touch-button interact-touch" data-control="interact" aria-label="Interact / 互动"><span aria-hidden="true">✦</span><small id="touch-interact-label">INTERACT</small></button><button class="touch-button jump-touch" data-control="jump" aria-label="Jump / 跳跃"><span aria-hidden="true">↑</span><small id="touch-jump-label">JUMP</small></button></div>
+      </div>
+    </footer>
+  </main>
+  <noscript><p class="noscript">Please enable JavaScript to take a little walk. 请开启 JavaScript。</p></noscript>
+</body>
+</html>
