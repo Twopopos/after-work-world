@@ -23,6 +23,7 @@ button,a{touch-action:manipulation}button{font:inherit;color:inherit;cursor:poin
 #dialog-body,#dialog-body-zh,#toast-en,#toast-zh{white-space:pre-line}
 .touch-prompt{display:none}
 .object-prompt{max-width:calc(100% - 20px);white-space:normal;text-align:center}.key-cap,.touch-prompt{flex-shrink:0}
+.object-prompt.auto-prompt .key-cap,.object-prompt.auto-prompt .touch-prompt{display:none}
 .dialog-meta{border-top:1px solid #334358;margin-top:20px;padding-top:8px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
 #dialog-sound{font-size:9px;padding:5px 3px;min-height:44px;gap:6px;color:var(--gold)}
 .music-info{flex:1;min-width:140px;font-size:8px;color:#94a9b9;line-height:1.7}

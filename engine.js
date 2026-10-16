@@ -19,7 +19,8 @@
     { id: 'box', x: 1220, y: 280, reach: 42 },
     { id: 'house', x: HOUSE_X, y: 280, reach: 44 },
     { id: 'hkTerminal', x: 1015, y: 280, reach: 40 },
-    { id: 'roundOne', x: 1510, y: 280, reach: 38 }
+    { id: 'roundOne', x: 1510, y: 280, reach: 38 },
+    { id: 'filmBoard', x: HOUSE_X + 164, y: WORLD.ground, reach: 40, auto: true }
   ];
   const ROOM_OBJECTS = [
     { id: 'exit', x: ROOM.door, y: 280, reach: 35 },

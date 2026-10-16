@@ -30,6 +30,34 @@
   function box(x,y,open,t){rect(x-13,y-16,26,16,C.woodDark);rect(x-12,y-15,24,13,C.wood);rect(x-10,y-14,20,10,C.woodLight);rect(x-10,y-7,20,2,C.wood);rect(x-2,y-16,4,16,'#c6b185');if(open){rect(x-13,y-27,26,5,C.woodDark);rect(x-12,y-26,24,2,C.woodLight);rect(x-10,y-17,20,4,'#3c3b3c');const bob=reduced?0:Math.round(Math.sin(t*2)*2);glow(x,y-30+bob,5);star(x,y-32+bob,C.warm,1);rect(x-1,y-19,2,2,C.warm);}else{rect(x-14,y-18,28,4,C.woodLight);rect(x-2,y-18,4,4,'#e0c995');rect(x-2,y-10,4,4,C.gold);}}
   function cake(x,y,lit,t){rect(x-24,y-5,48,3,C.woodDark);rect(x-21,y-4,4,5,C.woodDark);rect(x+17,y-4,4,5,C.woodDark);rect(x-17,y-17,34,12,'#c99a85');rect(x-17,y-19,34,5,'#efe1c3');rect(x-15,y-14,4,3,'#e6cbb0');rect(x-7,y-14,4,3,'#e6cbb0');rect(x+9,y-14,4,3,'#e6cbb0');rect(x-17,y-7,34,2,'#ad766d');for(let i=-1;i<=1;i++){rect(x+i*9-1,y-26,2,7,'#d3b787');if(lit){const flick=reduced?0:Math.floor(t*5+i)%2;glow(x+i*9,y-29,4);rect(x+i*9-1,y-31-flick,2,4+flick,C.gold);rect(x+i*9,y-30,1,2,C.warm);}}}
   function sign(x,y){rect(x-2,y-22,4,22,C.woodDark);rect(x-13,y-32,27,14,'#6e6351');rect(x-12,y-31,25,12,'#9f8c68');rect(x-8,y-27,16,1,'#544e45');rect(x-6,y-24,12,1,'#655947');}
+  function filmBoard(x,y){
+    // A small, weathered board beyond the roof's right edge. Original color
+    // blocks recall a faded seaside print; no poster image or film assets.
+    rect(x-31,y-24,4,24,'#3c4440');rect(x+27,y-24,4,24,'#3c4440');
+    rect(x-42,y-84,84,62,'#303d40');rect(x-40,y-82,80,58,'#4e5149');
+    rect(x-38,y-80,76,54,'#3b4643');rect(x-42,y-84,84,2,'#727164');
+    rect(x-37,y-81,9,1,'#8c8871');rect(x+28,y-25,11,1,'#77725e');
+    // The 36px print occupies the left half of the 84px board, not the view.
+    rect(x-37,y-79,36,50,'#8e9f9c');rect(x-36,y-78,34,25,'#9daaa1');
+    rect(x-36,y-76,12,13,'#8ea6a5');rect(x-24,y-74,22,15,'#a8afa1');
+    rect(x-35,y-62,33,8,'#b1b09a');rect(x-34,y-55,32,5,'#b7aa8c');
+    rect(x-36,y-50,34,20,'#567d85');rect(x-36,y-47,13,2,'#779393');
+    rect(x-20,y-44,18,2,'#86a19b');rect(x-35,y-38,12,1,'#a6b2a2');
+    rect(x-17,y-35,14,2,'#9ba99a');rect(x-36,y-49,9,2,'#516f79');
+    // Two indistinct backs facing the water, following the reference's mood.
+    rect(x-29,y-43,6,6,'#414f4d');rect(x-30,y-39,8,3,'#606555');
+    rect(x-32,y-36,12,7,'#a38a6c');rect(x-30,y-38,8,3,'#b49a79');
+    rect(x-12,y-40,5,6,'#3d504e');rect(x-14,y-34,9,5,'#a29177');
+    rect(x-11,y-34,2,5,'#706961');rect(x-32,y-60,21,1,'#d0c9ad');
+    rect(x-31,y-58,19,1,'#bcc0a9');rect(x-36,y-31,34,1,'#b0aa90');
+    // Smaller taped note, with two groups of handwriting marks. Its complete
+    // wording is read once through the existing toast, rather than tiny type.
+    rect(x+7,y-66,28,32,'#2c393b');rect(x+6,y-67,27,31,'#bcaf8b');
+    rect(x+7,y-66,25,28,'#d0c3a0');rect(x+15,y-69,9,4,'#9eaa91');
+    for(const [row,length] of [[0,16],[1,19],[2,13],[4,18],[5,17],[6,9]])rect(x+10,y-60+row*3,length,1,'#756e58');
+    rect(x+29,y-39,3,2,'#a79c7d');rect(x+8,y-65,4,1,'#dfd0aa');
+    rect(x-40,y-81,2,2,'#959382');rect(x+37,y-28,2,2,'#959382');
+  }
   // Use whole canvas pixels for this small label; a 7px font rasterizes its
   // 120/1000-em cells to fractional pixels, even with image smoothing disabled.
   const labelGlyphs={H:'1111111F111111',K:'11121418141211',S:'0F10100E01011E',E:'1F10101E10101F',R:'1E11111E141211',V:'11111111110A04',O:'0E11111111110E',N:'11191915131311',Y:'11110A04040404',A:'0E11111F111111',G:'0F10101711110F','·':'00000004000000',' ':'00000000000000'};
@@ -140,6 +168,7 @@
     for(const o of root.NightEngine.OBJECTS){
       if(o.id==='hkTerminal')terminal(o.x-camera,gy);
       if(o.id==='roundOne')memorial(o.x-camera,gy,options.memorialGlow||0);
+      if(o.id==='filmBoard')filmBoard(o.x-camera,gy);
     }
     // A few stepping stones let curious players find higher stars.
     for(const p of root.NightEngine.PLATFORMS){const x=p.x-camera,y=p.y+base;rect(x+5,y+4,p.w-10,8,'#3e5351');rect(x,y,p.w,5,'#68796a');rect(x+3,y-2,p.w-6,3,'#799279');rect(x+8,y+5,5,3,'#52675c');rect(x+p.w-19,y+5,7,2,'#52675c');}

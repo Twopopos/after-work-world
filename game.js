@@ -8,7 +8,7 @@
   let reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let view={ctx,width:600,height:336}, last=0, accumulator=0, toastTime=0, toastCopy=null, oldFocus=null;
   let toastAnchor=null, toastFade=0, toastFadeDuration=.55, toastPlacement=null, dismissedPromptId=null;
-  let memorialPulse=0;
+  let memorialPulse=0, filmBoardInside=false;
   let jumpQueued=false, particles=[], audio=null, music=null, musicSource=null, musicToken=0, musicNeedsResume=false, musicProbe=null;
   let musicGain=null, musicNode=null, musicLevel=.85, musicFade=null;
   const MUSIC_LEVEL=.85, MUSIC_FADE_SECONDS=1.5;
@@ -51,6 +51,7 @@
     roundMemory:['An unexpected beginning.\nSometimes, the best things start by accident.','一场意料之外的开始。\n有时候，最美好的事就这样偶然开始。'],
     benchMemory:["Take your time.\nThere's no need to rush to the next chapter.",'慢慢来。\n不必急着翻开下一章。'],
     sign:['Enjoy the night.','享受这个夜晚。'],
+    filmNote:['The end of this little world...\nBut not the end of the story.','这个小世界到了尽头……\n但故事还没有结束。'],
     boxLocked:['A couple of stars might wake this up.','带两颗星星来，也许会有小惊喜。'],
     boxOpen:['A pocket-sized constellation. Yours to keep.','一小片星光，送给你。'],
     boxAgain:['Still a little brighter in here.','这里还亮着一点星光。'],
@@ -61,7 +62,7 @@
   };
   function clearInput(){keys.clear();pointers.clear();jumpQueued=false;document.querySelectorAll('[data-control]').forEach(el=>el.classList.remove('is-down'));}
   function held(action){return [...pointers.values()].some(p=>p.action===action)||(action==='left'?(keys.has('KeyA')||keys.has('ArrowLeft')):action==='right'?(keys.has('KeyD')||keys.has('ArrowRight')):false);}
-  function reset(){memorialPulse=0;resetOutdoor();stopMusic();playedMusic.clear();clearInput();state=E.createGame();particles=[];hideToast();last=0;accumulator=0;E.updateCamera(state,view.width,0,true);syncUI();canvas.focus({preventScroll:true});}
+  function reset(){memorialPulse=0;filmBoardInside=false;resetOutdoor();stopMusic();playedMusic.clear();clearInput();state=E.createGame();particles=[];hideToast();last=0;accumulator=0;E.updateCamera(state,view.width,0,true);syncUI();canvas.focus({preventScroll:true});}
   function setSoundUI(){
     $('sound-label').textContent=soundOn?'ON':'OFF';$('sound-button').setAttribute('aria-pressed',String(soundOn));$('sound-button').setAttribute('aria-label',soundOn?'Mute sound / 静音':'Turn sound on / 开启声音');
     $('dialog-sound-label').textContent=soundOn?'MUSIC ON':'MUSIC OFF';$('dialog-sound').setAttribute('aria-pressed',String(soundOn));$('dialog-sound').setAttribute('aria-label',soundOn?'Mute music / 关闭音乐':'Turn music on / 开启音乐');
@@ -152,7 +153,15 @@
   function hasOutdoorDialogue(){return toastAnchor&&toastAnchor.scene==='night'&&state.scene==='night'&&state.mode==='playing';}
   function showToast(copy,duration=4,memory=false){resetToastPlacement();dismissedPromptId=null;$('object-prompt').style.opacity='1';$('toast').classList.toggle('memory-toast',memory);$('toast').classList.remove('toast-fading');$('toast').style.opacity='1';toastAnchor=null;toastFade=0;toastCopy=copy;toastTime=duration;$('toast-en').textContent=copy[0];$('toast-zh').textContent=copy[1];$('toast-zh').hidden=!chinese;$('toast').hidden=false;}
   function hideToast(){if(toastAnchor&&toastAnchor.scene==='night')$('object-prompt').hidden=true;$('object-prompt').style.opacity='1';toastTime=0;toastCopy=null;toastAnchor=null;toastFade=0;$('toast').hidden=true;$('toast').style.opacity='1';$('toast').classList.remove('toast-fading');resetToastPlacement();}
-  function showObjectDialogue(copy,id,memory=false){showToast(copy,0,memory);const object=E.OBJECTS.find(o=>o.id===id);if(object)toastAnchor={...object,scene:state.scene};positionOutdoorDialogue();}
+  function showObjectDialogue(copy,id,memory=false){showToast(copy,0,memory);const object=E.OBJECTS.find(o=>o.id===id);if(object){toastAnchor={...object,scene:state.scene};if(object.auto)updateHUD();}positionOutdoorDialogue();}
+  function updateFilmBoard(){
+    const board=E.OBJECTS.find(o=>o.id==='filmBoard'),p=state.player;
+    if(state.scene!=='night'){filmBoardInside=false;return;}
+    // Reuse nearest's ground/proximity check. Rearm beyond the same departure
+    // margin as the dialogue, so standing or hovering at its edge never loops.
+    if(Math.abs(p.x+p.w/2-board.x)>board.reach+24||Math.abs(p.y+p.h-board.y)>70)filmBoardInside=false;
+    if(!filmBoardInside&&E.nearest(state)?.id===board.id){filmBoardInside=true;showObjectDialogue(text.filmNote,board.id,true);}
+  }
   function positionOutdoorDialogue(){
     const toast=$('toast');
     if(toast.hidden||!toastAnchor||toastAnchor.scene!=='night'||state.scene!=='night')return;
@@ -239,17 +248,19 @@
     $('star-counter').setAttribute('aria-label',`${count} of 5 stars / ${count} 颗星星，共 5 颗`);
     let target=state.mode==='playing'?E.nearest(state):null;
     if(target&&target.id==='candle'&&['waiting','counting','audioBlocked'].includes(state.reveal.status))target=null;
-    const labels={bench:state.player.sitting?['Stand up','起身']:['Take a seat','坐一会儿'],box:state.boxOpen?['A little light','一点星光']:['Open the box','打开盒子'],sign:['Read','读一读'],house:['Step inside','进入小屋'],exit:['Step outside','离开小屋'],candle:state.house.candleLit?['Read the birthday note','阅读生日祝福']:['Looks like it could be lit…','似乎可以点燃…'],hkTerminal:['HK SERVER · ONE YEAR AGO','港服 · 一年前'],roundOne:['A quiet keepsake','一件安静的纪念物']};
+    const labels={bench:state.player.sitting?['Stand up','起身']:['Take a seat','坐一会儿'],box:state.boxOpen?['A little light','一点星光']:['Open the box','打开盒子'],sign:['Read','读一读'],house:['Step inside','进入小屋'],exit:['Step outside','离开小屋'],candle:state.house.candleLit?['Read the birthday note','阅读生日祝福']:['Looks like it could be lit…','似乎可以点燃…'],hkTerminal:['HK SERVER · ONE YEAR AGO','港服 · 一年前'],roundOne:['A quiet keepsake','一件安静的纪念物'],filmBoard:['A faded seaside poster','一张褪色的海边海报']};
     const prompt=$('object-prompt'),promptWasHidden=prompt.hidden,linked=hasOutdoorDialogue();
     if(dismissedPromptId&&(!target||target.id!==dismissedPromptId))dismissedPromptId=null;
     // Keep the matching prompt visible through the dialogue's existing departure
     // threshold and fade; control availability still follows the real target below.
     prompt.hidden=linked?false:!target||target.id===dismissedPromptId;
     prompt.style.opacity=linked?$('toast').style.opacity:'1';
+    prompt.classList.toggle('auto-prompt',!!(linked?toastAnchor.auto:target&&target.auto));
     const promptTarget=linked&&(!target||target.id!==toastAnchor.id)?null:target;
     if(promptTarget){$('object-prompt-text').textContent=chinese?`${labels[promptTarget.id][0]} · ${labels[promptTarget.id][1]}`:labels[promptTarget.id][0];const world=$('world').getBoundingClientRect();const px=(promptTarget.x-state.camera+E.screenOffset(state,view.width))/view.width*world.width;const py=(promptTarget.y-(promptTarget.id==='candle'?92:49)+view.height-336)/view.height*world.height;const half=Math.min(world.width/2-10,(prompt.offsetWidth||200)/2+12);prompt.style.left=E.clamp(px,half,world.width-half)+'px';prompt.style.top=Math.max(45,py)+'px';}
-    $('touch-interact').classList.toggle('available',!!target);$('touch-interact').setAttribute('aria-label',target?`${labels[target.id][0]} / ${labels[target.id][1]}`:'Interact / 互动');
-    $('touch-interact').disabled=!target;
+    const actionable=target&&!target.auto;
+    $('touch-interact').classList.toggle('available',!!actionable);$('touch-interact').setAttribute('aria-label',actionable?`${labels[target.id][0]} / ${labels[target.id][1]}`:'Interact / 互动');
+    $('touch-interact').disabled=!actionable;
     const x=state.player.x;$('location-text').textContent=state.scene==='house'?(state.house.candleLit?'A LITTLE LIGHT':'A QUIET LITTLE ROOM'):x<670?'THE QUIET PATH':x<1140?'A FEW STEPPING STONES':x<1740?'LITTLE THINGS, ALONG THE WAY':'A QUIET LITTLE CLEARING';
     if(promptWasHidden!==prompt.hidden)positionOutdoorDialogue();
   }
@@ -276,7 +287,7 @@
     const dt=last?Math.min((now-last)/1000,.1):0;last=now;
     if(!document.hidden){updateMusicFade(dt);updateOutdoor(dt);confirmPlayback();accumulator+=dt;while(accumulator>=1/60){
       const input={left:held('left'),right:held('right'),jumpPressed:jumpQueued};jumpQueued=false;
-      E.step(state,input,1/60);events();if(state.mode==='playing'){if(memorialPulse>0)memorialPulse=Math.max(0,memorialPulse-1/60);updateToast(1/60);E.updateCamera(state,view.width,1/60,reduced);}
+      E.step(state,input,1/60);events();if(state.mode==='playing'){if(memorialPulse>0)memorialPulse=Math.max(0,memorialPulse-1/60);updateFilmBoard();updateToast(1/60);E.updateCamera(state,view.width,1/60,reduced);}
       if(state.mode==='playing'||state.mode==='birthday'){for(const p of particles){p.x+=p.vx/60;p.y+=p.vy/60;p.vy+=18/60;p.life-=1/60;}particles=particles.filter(p=>p.life>0);}
       accumulator-=1/60;
     }
