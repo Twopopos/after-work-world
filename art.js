@@ -2,7 +2,7 @@
 (function (root) {
   'use strict';
   const C = { sky:'#111e34',sky2:'#16283f',sky3:'#1d3448',far:'#223d4e',hill:'#1a3846',tree:'#142d38',leaf:'#285047',grass:'#3c6051',grassLight:'#60806a',earth:'#283f3c',soil:'#24363a',path:'#576260',pathLight:'#6c7470',gold:'#edc986',warm:'#f9e2a4',wood:'#9a7353',woodLight:'#b48b62',woodDark:'#5d4a42',ink:'#17283b' };
-  let ctx, w, h, camera, base, time, reduced;
+  let ctx, w, h, camera, base, time, reduced, playerScreenX;
   function rect(x,y,width,height,color){ctx.fillStyle=color;ctx.fillRect(Math.round(x),Math.round(y),Math.round(width),Math.round(height));}
   function rand(n){const v=Math.sin(n*127.1+31.7)*43758.5453;return v-Math.floor(v);}
   function star(x,y,color=C.gold,size=1){rect(x,y-3*size,size,7*size,color);rect(x-2*size,y-size,5*size,3*size,color);}
@@ -142,14 +142,114 @@
     }
     player(state.player);
   }
-  function player(p){let x=Math.round(p.x-camera),y=Math.round(p.y+base);const walking=p.grounded&&Math.abs(p.vx)>0;const frame=walking&&!reduced?Math.floor(time*9)%4:0;const bob=walking&&frame%2===1?1:0;y-=bob;ctx.save();if(p.facing<0){ctx.translate(x+p.w,y);ctx.scale(-1,1);x=0;y=0;}
-    if(p.sitting){rect(x-2,y+21,20,3,'#172a30');rect(x+1,y+14,12,6,'#607b82');rect(x+10,y+17,6,4,'#3c505e');rect(x+12,y+20,6,3,'#d4c7aa');}
-    else{const stride=frame===1?2:frame===3?-2:0;rect(x+2+stride,y+18,4,5,'#3a4a59');rect(x+8-stride,y+18,4,5,'#465a65');rect(x+1+stride,y+22,6,2,'#d3c6ac');rect(x+8-stride,y+22,6,2,'#d3c6ac');}
-    rect(x+1,y+10,12,9,'#688b8f');rect(x+2,y+10,9,2,'#91aaa5');rect(x+1,y+15,3,4,'#506e7b');rect(x+12,y+11,3,7,'#8ba09d');rect(x+12,y+17,3,3,'#d2ae8c');rect(x-1,y+11,3,6,'#506e7b');rect(x+3,y+3,10,8,'#d3ac88');rect(x+1,y+1,11,5,'#473f3b');rect(x+3,y,8,2,'#5c4a3e');rect(x+1,y+4,4,4,'#473f3b');rect(x+10,y+6,1,2,'#28323b');rect(x+6,y+10,6,2,'#e4c58e');rect(x+4,y+11,3,3,'#d4ac76');ctx.restore();
+  // Presentation history only: never write animation fields into the player or
+  // change physics. Weak keys also discard the old pose after a game restart.
+  const playerMotion=new WeakMap();
+  // Contact, support, toe-off, passing and forward swing. Interpolate between
+  // these eight positions using travelled distance, not a low-FPS frame clock.
+  const walkFeet=[[3,0],[1.5,0],[-.5,0],[-2.5,0],[-3,1],[-1,2],[1.5,2],[3,1]];
+  function walkFoot(phase){const index=(phase/(Math.PI*2)*8)%8,i=Math.floor(index),t=index-i,a=walkFeet[i],b=walkFeet[(i+1)%8];return{dx:a[0]+(b[0]-a[0])*t,lift:a[1]+(b[1]-a[1])*t};}
+  function playerPose(p){
+    let previous=playerMotion.get(p);
+    if(!previous||time<previous.time||time-previous.time>.25||Math.abs(p.x-previous.x)>48||Math.abs(p.y-previous.y)>64)previous={grounded:p.grounded,vy:p.vy,landUntil:0,time,x:p.x,y:p.y,phase:0,weight:0,walking:false};
+    if(!reduced&&p.grounded&&!previous.grounded&&previous.vy>=0)previous.landUntil=time+.12;
+    const dt=Math.max(0,time-previous.time),distance=Math.abs(p.x-previous.x);
+    const walking=p.grounded&&!p.sitting&&Math.abs(p.vx)>0&&(distance>0||dt===0&&previous.walking);
+    const weight=reduced||!p.grounded||p.sitting?0:previous.weight+Math.max(-dt/.08,Math.min(dt/.08,(walking?1:0)-previous.weight));
+    const phase=(previous.phase+(walking?distance/56*Math.PI*2:0))%(Math.PI*2);
+    const landing=!reduced&&!p.sitting&&p.grounded&&time<previous.landUntil;
+    playerMotion.set(p,{grounded:p.grounded,vy:p.vy,landUntil:previous.landUntil,time,x:p.x,y:p.y,phase,weight,walking});
+    return {phase,weight,landing,air:!p.grounded,body:landing?1:0};
+  }
+  function player(p){
+    const pose=playerPose(p);
+    let x=Math.round(Number.isFinite(playerScreenX)?playerScreenX:p.x-camera),y=Math.round(p.y+base);
+    ctx.save();if(p.facing<0){ctx.translate(x+p.w,y);ctx.scale(-1,1);x=0;y=0;}
+    const upper=y+pose.body,airLift=pose.air?(Math.abs(p.vy)<65?2:1):0;
+    // Small travel pack, behind the body. It is scenery on the sprite only,
+    // with no inventory or gameplay behavior.
+    rect(x-2,upper+13,6,8,'#45372d');rect(x-1,upper+14,4,6,'#614837');
+    rect(x-1,upper+13,5,2,'#7a5a40');rect(x-1,upper+17,2,2,'#ba8c4d');
+    // Legs retain the old 24px footprint. Feet stay planted during the small
+    // landing crouch; airborne knees follow ascent, apex and descent instead.
+    if(p.sitting){
+      rect(x-2,y+21,20,3,'#172a30');rect(x+1,y+14,12,6,'#59483e');
+      rect(x+10,y+17,6,4,'#4a3b34');rect(x+12,y+20,6,3,'#4b3b31');
+    }else if(pose.weight>0&&!pose.landing){
+      function leg(front){
+        const foot=walkFoot(pose.phase+(front?0:Math.PI)),blend=pose.weight;
+        const hip=front?10-2*blend:5+blend;
+        const footX=(front?8:2)+((front?6:4)+foot.dx-(front?8:2))*blend;
+        const lift=Math.round(foot.lift*blend),ankleY=22-lift,kneeY=20-lift*.3;
+        const kneeX=(hip+footX+2)/2+lift*.4;
+        for(let row=18;row<ankleY;row++){
+          const t=row<kneeY?(row-18)/Math.max(1,kneeY-18):(row-kneeY)/Math.max(1,ankleY-kneeY);
+          const center=row<kneeY?hip+(kneeX-hip)*t:kneeX+(footX+2-kneeX)*t;
+          rect(x+center-1,y+row,3,1,front?'#59483e':'#4a3b34');
+        }
+        rect(x+footX,y+ankleY,5,2,front?'#4b3b31':'#3d302b');
+      }
+      leg(false);leg(true);
+    }else{
+      const farLift=pose.air?airLift:0;
+      const nearLift=pose.air?airLift+(p.vy< -65?1:0):0;
+      const knee=pose.landing?1:0;
+      rect(x+3,y+18+knee,4,4-farLift-knee,'#4a3b34');
+      rect(x+8,y+18+knee,4,4-nearLift-knee,'#59483e');
+      rect(x+3,y+19+knee,1,2-farLift,'#6c5748');
+      rect(x+8,y+19+knee,1,Math.max(1,2-nearLift),'#745c4e');
+      rect(x+2,y+22-farLift,5,2,'#3d302b');
+      rect(x+8,y+22-nearLift,5,2,'#4b3b31');
+    }
+    // Compact cream hoodie, soft folds and pack straps from the new reference.
+    // The shorter visible torso leaves room for a fuller, softer head silhouette.
+    rect(x+2,upper+12,10,8,'#d8cab6');rect(x+3,upper+14,1,5,'#eee0ca');
+    rect(x+10,upper+14,2,5,'#b6a591');rect(x+5,upper+17,5,2,'#c4b49d');
+    rect(x+5,upper+17,1,1,'#a99781');rect(x+9,upper+17,1,1,'#a99781');
+    rect(x+3,upper+13,1,4,'#614837');rect(x+10,upper+13,1,4,'#614837');
+    rect(x+5,upper+14,1,2,'#574b41');rect(x+8,upper+14,1,2,'#574b41');
+    rect(x+3,upper+19,8,1,'#b6a591');
+    const swing=Math.cos(pose.phase)*1.4*pose.weight;
+    const armLift=pose.air?(p.vy< -65?-2:-1):0;
+    function sleeve(ax,ay,front,bend){
+      for(let row=0;row<5;row++){
+        const drift=Math.round(bend*row/4);rect(ax+drift,ay+row,3,1,front?'#d8cab6':'#b6a591');
+      }
+      rect(ax+Math.round(bend),ay+5,3,2,front?'#e2bd9d':'#cba183');
+    }
+    sleeve(x,upper+13+armLift,false,swing);
+    sleeve(x+11,upper+13+armLift,true,-swing);
+    // Muted blue scarf and short loose end, painted over the hoodie collar.
+    rect(x+2,upper+12,11,2,'#3e576d');rect(x+4,upper+12,8,1,'#8ba6b9');
+    rect(x+3,upper+13,9,1,'#587b95');rect(x+4,upper+14,2,2,'#587b95');
+    // Rounded, tousled brown hair with a small crown tuft. The sprite stays
+    // at its existing height with an unchanged hitbox; only the art is chibi-like.
+    rect(x+2,upper+5,11,7,'#e2bd9d');rect(x+12,upper+9,2,2,'#edcdb0');
+    rect(x+1,upper+10,2,2,'#cba183');rect(x+10,upper+9,1,2,'#342923');
+    rect(x+4,upper+9,1,2,'#342923');rect(x+3,upper+11,1,1,'#d79781');
+    rect(x+10,upper+11,1,1,'#d79781');
+    // Swept crown tuft and uneven, tapered fringe from the reference.
+    // Skin gaps keep the two-pixel eyes separate from the hair.
+    const hair=[
+      '        OO      ',
+      '         MO     ',
+      '    OOOMMOMOO   ',
+      '  OOMHHMMMMMMO  ',
+      '  OMHHMMMMHMMMO ',
+      ' OMMHMMMMMMHMMO ',
+      'OMMMMMMMMMMMMHMO',
+      ' OMMM MMMM MHMO ',
+      ' OMM   MM    MO ',
+      '  OM   M     MO ',
+      '  O          O  '
+    ];
+    const hairColors={O:'#322a28',M:'#594940',H:'#806657'};
+    for(let row=0;row<hair.length;row++)for(let col=0;col<hair[row].length;col++)if(hairColors[hair[row][col]])rect(x+col-1,upper+row,1,1,hairColors[hair[row][col]]);
+    ctx.restore();
   }
   function flowers(x,y,seed){const color=seed%3===0?'#bdbb91':seed%3===1?'#85998a':'#657c75';rect(x,y-4,1,4,C.grassLight);rect(x-1,y-5,3,2,color);}
   function draw(state, view, options={}) {
-    ctx=view.ctx;w=view.width;h=view.height;camera=Math.round(state.camera)-root.NightEngine.screenOffset(state,w);base=h-336;time=state.time;reduced=!!options.reduced;
+    ctx=view.ctx;w=view.width;h=view.height;camera=Math.round(state.camera)-root.NightEngine.screenOffset(state,w);base=h-336;time=state.time;reduced=!!options.reduced;playerScreenX=options.playerScreenX;
     if(state.scene==='house'){room(state);return;}
     rect(0,0,w,h,C.sky);rect(0,Math.round(h*.5),w,h*.5,C.sky2);rect(0,h*.68,w,h*.32,C.sky3);
     for(let i=0;i<100;i++){const sx=((rand(i+10)*2400-camera*.12)% (w+120)+w+120)%(w+120)-60;const sy=12+rand(i+100)*Math.max(50,h*.65);const bright=i%11===0;const twinkle=reduced?1:.72+Math.sin(time*.55+i)*.22;ctx.globalAlpha=twinkle;rect(sx,sy,1,1,bright?'#d9c797':'#61778d');if(bright&&i%2===0)rect(sx-1,sy+1,3,1,'#809299');}ctx.globalAlpha=1;

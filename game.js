@@ -8,6 +8,7 @@
   let reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let view={ctx,width:600,height:336}, last=0, accumulator=0, toastTime=0, toastCopy=null, oldFocus=null;
   let toastAnchor=null, toastFade=0, toastFadeDuration=.55, toastPlacement=null, dismissedPromptId=null;
+  let playerFrame=null;
   let memorialPulse=0;
   let jumpQueued=false, particles=[], audio=null, music=null, musicSource=null, musicToken=0, musicNeedsResume=false, musicProbe=null;
   let musicGain=null, musicNode=null, musicLevel=.85, musicFade=null;
@@ -280,11 +281,19 @@
     const dt=last?Math.min((now-last)/1000,.1):0;last=now;
     if(!document.hidden){updateMusicFade(dt);updateOutdoor(dt);confirmPlayback();accumulator+=dt;while(accumulator>=1/60){
       const input={left:held('left'),right:held('right'),jumpPressed:jumpQueued};jumpQueued=false;
+      playerFrame={player:state.player,scene:state.scene,width:view.width,x:state.player.x,camera:state.camera};
       E.step(state,input,1/60);events();if(state.mode==='playing'){if(memorialPulse>0)memorialPulse=Math.max(0,memorialPulse-1/60);updateToast(1/60);E.updateCamera(state,view.width,1/60,reduced);}
       if(state.mode==='playing'||state.mode==='birthday'){for(const p of particles){p.x+=p.vx/60;p.y+=p.vy/60;p.vy+=18/60;p.life-=1/60;}particles=particles.filter(p=>p.life>0);}
       accumulator-=1/60;
     }
-    A.draw(state,view,{reduced,particles,memorialGlow:memorialPulse>0?Math.sin(Math.PI*(1-memorialPulse/1.1)):0});updateHUD();}
+    // Interpolate only the actor's horizontal screen position between physics
+    // ticks. Camera, world drawing, hitbox and interaction positions stay exact.
+    let playerScreenX;
+    if(state.mode==='playing'&&playerFrame&&playerFrame.player===state.player&&playerFrame.scene===state.scene&&playerFrame.width===view.width&&Math.abs(state.player.x-playerFrame.x)<8&&Math.abs(state.camera-playerFrame.camera)<8){
+      const from=playerFrame.x-Math.round(playerFrame.camera),to=state.player.x-Math.round(state.camera);
+      playerScreenX=from+(to-from)*E.clamp(accumulator*60,0,1)+E.screenOffset(state,view.width);
+    }
+    A.draw(state,view,{reduced,particles,playerScreenX,memorialGlow:memorialPulse>0?Math.sin(Math.PI*(1-memorialPulse/1.1)):0});updateHUD();}
     window.requestAnimationFrame(frame);
   }
   function releasePointer(ev){const old=pointers.get(ev.pointerId);pointers.delete(ev.pointerId);if(old&&![...pointers.values()].some(p=>p.element===old.element))old.element.classList.remove('is-down');}
