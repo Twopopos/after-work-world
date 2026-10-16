@@ -7,7 +7,7 @@
   let state=E.createGame(), chinese=!!config.defaultChinese, soundOn=!!config.soundInitiallyOn;
   let reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let view={ctx,width:600,height:336}, last=0, accumulator=0, toastTime=0, toastCopy=null, oldFocus=null;
-  let toastAnchor=null, toastFade=0, toastFadeDuration=.55;
+  let toastAnchor=null, toastFade=0, toastFadeDuration=.55, toastPlacement=null, dismissedPromptId=null;
   let memorialPulse=0;
   let jumpQueued=false, particles=[], audio=null, music=null, musicSource=null, musicToken=0, musicNeedsResume=false, musicProbe=null;
   let musicGain=null, musicNode=null, musicLevel=.85, musicFade=null;
@@ -148,12 +148,40 @@
     try{const t=audio.currentTime+delay,o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.value=freq;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+length);o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+length+.02);o.onended=()=>{o.disconnect();g.disconnect();};}catch(_){}
   }
   function burst(x,y,n=14){if(reduced)return;for(let i=0;i<n;i++){const angle=i/n*Math.PI*2;const speed=13+(i%5)*7;particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-19,size:i%3===0?2:1,color:['#edca86','#90aaa2','#d8b9ac'][i%3],life:1.2,max:1.2});}}
-  function showToast(copy,duration=4,memory=false){$('toast').classList.toggle('memory-toast',memory);$('toast').classList.remove('toast-fading');$('toast').style.opacity='1';toastAnchor=null;toastFade=0;toastCopy=copy;toastTime=duration;$('toast-en').textContent=copy[0];$('toast-zh').textContent=copy[1];$('toast-zh').hidden=!chinese;$('toast').hidden=false;}
-  function hideToast(){toastTime=0;toastCopy=null;toastAnchor=null;toastFade=0;$('toast').hidden=true;$('toast').style.opacity='1';$('toast').classList.remove('toast-fading');}
-  function showObjectDialogue(copy,id,memory=false){showToast(copy,0,memory);const object=E.OBJECTS.find(o=>o.id===id);if(object)toastAnchor={...object,scene:state.scene};}
+  function resetToastPlacement(){toastPlacement=null;$('toast').style.top='';$('toast').style.bottom='';$('toast').style.transform='';$('toast').dataset.outdoorOffset='0';}
+  function hasOutdoorDialogue(){return toastAnchor&&toastAnchor.scene==='night'&&state.scene==='night'&&state.mode==='playing';}
+  function showToast(copy,duration=4,memory=false){resetToastPlacement();dismissedPromptId=null;$('object-prompt').style.opacity='1';$('toast').classList.toggle('memory-toast',memory);$('toast').classList.remove('toast-fading');$('toast').style.opacity='1';toastAnchor=null;toastFade=0;toastCopy=copy;toastTime=duration;$('toast-en').textContent=copy[0];$('toast-zh').textContent=copy[1];$('toast-zh').hidden=!chinese;$('toast').hidden=false;}
+  function hideToast(){if(toastAnchor&&toastAnchor.scene==='night')$('object-prompt').hidden=true;$('object-prompt').style.opacity='1';toastTime=0;toastCopy=null;toastAnchor=null;toastFade=0;$('toast').hidden=true;$('toast').style.opacity='1';$('toast').classList.remove('toast-fading');resetToastPlacement();}
+  function showObjectDialogue(copy,id,memory=false){showToast(copy,0,memory);const object=E.OBJECTS.find(o=>o.id===id);if(object)toastAnchor={...object,scene:state.scene};positionOutdoorDialogue();}
+  function positionOutdoorDialogue(){
+    const toast=$('toast');
+    if(toast.hidden||!toastAnchor||toastAnchor.scene!=='night'||state.scene!=='night')return;
+    const world=$('world').getBoundingClientRect();
+    // Prompt visibility/camera changes must not reflow an already visible message.
+    // Only a changed viewport size may resolve the existing responsive rules again.
+    if(toastPlacement&&toastPlacement.width===world.width&&toastPlacement.height===world.height)return;
+    resetToastPlacement();
+    const box=toast.getBoundingClientRect();
+    const viewportHeight=window.visualViewport&&window.visualViewport.height||window.innerHeight||world.height;
+    const previous=Number(toast.dataset.outdoorOffset)||0;
+    const top=box.top-previous,bottom=top+box.height;
+    const gap=Math.max(8,world.height*.015);
+    // Keep the upper messages above the ground band occupied by props. Desktop
+    // messages already below that band may move only within their bottom margin.
+    const sceneryTop=world.top+Math.max(0,view.height-118)/view.height*world.height;
+    let room=world.top+world.height-gap-bottom;
+    if(bottom<=sceneryTop)room=Math.min(room,sceneryTop-gap-bottom);
+    else if(top<sceneryTop)room=0;
+    const offset=Math.max(0,Math.min(viewportHeight*.09,room));
+    // Snapshot the existing layout position without changing its initial offset.
+    toast.style.top=(top-world.top)+'px';toast.style.bottom='auto';
+    toast.dataset.outdoorOffset=String(offset);
+    toast.style.transform=`translate(-50%, ${offset}px)`;
+    toastPlacement={width:world.width,height:world.height};
+  }
   function fadeToast(){if(!toastCopy||toastFade>0)return;toastFadeDuration=reduced?.15:.55;toastFade=toastFadeDuration;$('toast').classList.add('toast-fading');}
   function updateToast(dt){
-    if(toastFade>0){toastFade=Math.max(0,toastFade-dt);$('toast').style.opacity=String(toastFade/toastFadeDuration);if(toastFade===0)hideToast();return;}
+    if(toastFade>0){toastFade=Math.max(0,toastFade-dt);$('toast').style.opacity=String(toastFade/toastFadeDuration);if(toastFade===0){if(hasOutdoorDialogue())dismissedPromptId=toastAnchor.id;hideToast();}return;}
     if(toastAnchor){
       const p=state.player;
       if(state.scene!==toastAnchor.scene||Math.abs(p.x+p.w/2-toastAnchor.x)>toastAnchor.reach+24||Math.abs(p.y+p.h-toastAnchor.y)>70)fadeToast();
@@ -212,11 +240,18 @@
     let target=state.mode==='playing'?E.nearest(state):null;
     if(target&&target.id==='candle'&&['waiting','counting','audioBlocked'].includes(state.reveal.status))target=null;
     const labels={bench:state.player.sitting?['Stand up','起身']:['Take a seat','坐一会儿'],box:state.boxOpen?['A little light','一点星光']:['Open the box','打开盒子'],sign:['Read','读一读'],house:['Step inside','进入小屋'],exit:['Step outside','离开小屋'],candle:state.house.candleLit?['Read the birthday note','阅读生日祝福']:['Looks like it could be lit…','似乎可以点燃…'],hkTerminal:['HK SERVER · ONE YEAR AGO','港服 · 一年前'],roundOne:['A quiet keepsake','一件安静的纪念物']};
-    const prompt=$('object-prompt');prompt.hidden=!target;
-    if(target){$('object-prompt-text').textContent=chinese?`${labels[target.id][0]} · ${labels[target.id][1]}`:labels[target.id][0];const world=$('world').getBoundingClientRect();const px=(target.x-state.camera+E.screenOffset(state,view.width))/view.width*world.width;const py=(target.y-(target.id==='candle'?92:49)+view.height-336)/view.height*world.height;const half=Math.min(world.width/2-10,(prompt.offsetWidth||200)/2+12);prompt.style.left=E.clamp(px,half,world.width-half)+'px';prompt.style.top=Math.max(45,py)+'px';}
+    const prompt=$('object-prompt'),promptWasHidden=prompt.hidden,linked=hasOutdoorDialogue();
+    if(dismissedPromptId&&(!target||target.id!==dismissedPromptId))dismissedPromptId=null;
+    // Keep the matching prompt visible through the dialogue's existing departure
+    // threshold and fade; control availability still follows the real target below.
+    prompt.hidden=linked?false:!target||target.id===dismissedPromptId;
+    prompt.style.opacity=linked?$('toast').style.opacity:'1';
+    const promptTarget=linked&&(!target||target.id!==toastAnchor.id)?null:target;
+    if(promptTarget){$('object-prompt-text').textContent=chinese?`${labels[promptTarget.id][0]} · ${labels[promptTarget.id][1]}`:labels[promptTarget.id][0];const world=$('world').getBoundingClientRect();const px=(promptTarget.x-state.camera+E.screenOffset(state,view.width))/view.width*world.width;const py=(promptTarget.y-(promptTarget.id==='candle'?92:49)+view.height-336)/view.height*world.height;const half=Math.min(world.width/2-10,(prompt.offsetWidth||200)/2+12);prompt.style.left=E.clamp(px,half,world.width-half)+'px';prompt.style.top=Math.max(45,py)+'px';}
     $('touch-interact').classList.toggle('available',!!target);$('touch-interact').setAttribute('aria-label',target?`${labels[target.id][0]} / ${labels[target.id][1]}`:'Interact / 互动');
     $('touch-interact').disabled=!target;
     const x=state.player.x;$('location-text').textContent=state.scene==='house'?(state.house.candleLit?'A LITTLE LIGHT':'A QUIET LITTLE ROOM'):x<670?'THE QUIET PATH':x<1140?'A FEW STEPPING STONES':x<1740?'LITTLE THINGS, ALONG THE WAY':'A QUIET LITTLE CLEARING';
+    if(promptWasHidden!==prompt.hidden)positionOutdoorDialogue();
   }
   function events(){for(const ev of E.drainEvents(state)){
     if(ev.type==='start')showToast(text.start,3.5);
@@ -236,7 +271,7 @@
     if(ev.type==='audioTimeout')blockMusic();
     if(ev.type==='birthday'){keepBirthdayMusic();openDialog();}
   }}
-  function resize(){const r=$('world').getBoundingClientRect();if(!r.width||!r.height)return;const scale=Math.max(1,Math.min(3,r.height/310,r.width/280));const width=Math.round(r.width/scale),height=Math.round(r.height/scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.imageSmoothingEnabled=false;view={ctx,width,height};E.updateCamera(state,width,0,true);} }
+  function resize(){const r=$('world').getBoundingClientRect();if(!r.width||!r.height)return;const scale=Math.max(1,Math.min(3,r.height/310,r.width/280));const width=Math.round(r.width/scale),height=Math.round(r.height/scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.imageSmoothingEnabled=false;view={ctx,width,height};E.updateCamera(state,width,0,true);}positionOutdoorDialogue();}
   function frame(now){
     const dt=last?Math.min((now-last)/1000,.1):0;last=now;
     if(!document.hidden){updateMusicFade(dt);updateOutdoor(dt);confirmPlayback();accumulator+=dt;while(accumulator>=1/60){
